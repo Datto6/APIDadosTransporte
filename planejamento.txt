@@ -1,0 +1,64 @@
+categories {
+	be: {
+		dir: './org-BE/',
+		pref: 'be_',
+		dayfirst: True,
+		fullname: 'Bilhetagem Eletrônica'
+	},
+	bu: {
+		dir: './diario/org/',
+		pref: 'bu_',
+		dayfirst: True,
+		fullname: 'Bilhete Único'
+	},
+	gt: {
+		dir: './GT/',
+		pref: 'gt_',
+		dayfirst: False,
+		fullname: 'Gratuidade'
+	},
+}
+
+
+- def return_dfs
+
+dfs{
+	be: [df]/None,
+	bu: [df]/None,
+	gt: [df]/None
+}
+
+
+- def return_groups
+
+groups{
+	be: [df]/None,
+	bu: [df]/None,
+	gt: [df]/None
+}
+
+
+- def return_count
+
+groups{
+	be: int,
+	bu: int,
+	gt: int
+}
+
+merge = None
+
+if be != None:
+	merge = be
+
+if bu != None:
+	merge = pd.merge(...) ? merge != None : bu
+
+if gt != None:
+	merge = pd.merge(...) ? merge != None : gt
+
+if merge != None:
+	[gráfico]
+else:
+	[warning	]
+
