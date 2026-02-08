@@ -26,11 +26,6 @@ bases = {
 	},
 }
 
-be_dir = './org-BE/'
-bu_dir = './diario/org/'
-gt_dir = './GT/'
-
-
 st.set_page_config(
     page_title="Transporte Inteligente",
     page_icon=":bus:",
