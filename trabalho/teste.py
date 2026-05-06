@@ -7,6 +7,7 @@ print(dados.describe())
 for column in dados.select_dtypes(include=['number']):
     plt.figure()
     dados[column].plot(kind='hist', bins=20, title='Data Distribution', xlabel=column)
+    print(dados[column].value_counts())
 
 for column in dados.select_dtypes(include=['string']):
     plt.figure()
@@ -16,6 +17,7 @@ for column in dados.select_dtypes(include=['string']):
     plt.title('Distr '+column)
     plt.xlabel(column)
     plt.ylabel('Numero de pessoas')
+    print(dados[column].value_counts())
 
 
 plt.show()

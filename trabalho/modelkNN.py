@@ -114,34 +114,44 @@ for i in range(2,40):
         encode='ordinal',
         strategy='uniform'
     )
-    X_train_copy = X_train.copy()
+    X_train_copy = X_train.copy()   # usar copias
     X_test_copy = X_test.copy()
-    # usar copias
 
     X_train_copy['Age'] = age_discretizer.fit_transform(X_train[['Age']])
-    X_test_copy['Age'] = age_discretizer.transform(X_test[['Age']])
+    X_test_copy['Age'] = age_discretizer.transform(X_test[['Age']]) #discretiza atributo de idade
+
     for j in range(2,40):
-        credit_discretizer = KBinsDiscretizer(n_bins=j,encode='ordinal',strategy='uniform')
-        X_train_copy['Credit amount'] = credit_discretizer.fit_transform(X_train[['Credit amount']])
-        X_test_copy['Credit amount'] = credit_discretizer.transform(X_test[['Credit amount']])
-        clf = tree.DecisionTreeClassifier(class_weight='balanced',random_state=42)
+        duration_discretizer = KBinsDiscretizer(
+        n_bins=j,
+        encode='ordinal',
+        strategy='uniform'
+        )
+        X_train_copy['Duration'] = duration_discretizer.fit_transform(X_train[['Duration']])
+        X_test_copy['Duration'] = duration_discretizer.transform(X_test[['Duration']])
 
-        # Treinamento
-        clf.fit(X_train_copy, y_train)
+        for k in range (2,40):
+            credit_discretizer = KBinsDiscretizer(n_bins=k,encode='ordinal',strategy='uniform')
+            X_train_copy['Credit amount'] = credit_discretizer.fit_transform(X_train[['Credit amount']]) #so treina nos dados de treinamento
+            X_test_copy['Credit amount'] = credit_discretizer.transform(X_test[['Credit amount']]) #discretiza atributo de credit amount
 
-        # Teste
-        y_pred = clf.predict(X_test_copy)
 
-        acuracia = accuracy_score(y_test, y_pred)
-        if acuracia>max:
-            max=acuracia
-            print(f'A acurácia do modelo foi de {acuracia*100:.2f}% com {i} bins de idade e {j} bins de credit amount')
-            max = acuracia
-            best_cm = confusion_matrix(y_test, y_pred)
-            best_params = (i, j)
-            best_model = clf
+            clf = tree.DecisionTreeClassifier(class_weight='balanced',random_state=42) #cria modelo
+            # Treinamento
+            clf.fit(X_train_copy, y_train)
 
-print(f"Best accuracy: {max*100:.2f}% with Age={best_params[0]} and Credit={best_params[1]}")
+            # Teste
+            y_pred = clf.predict(X_test_copy)
+
+            acuracia = accuracy_score(y_test, y_pred)
+            if acuracia>max:
+                max=acuracia
+                print(f'A acurácia do modelo foi de {acuracia*100:.2f}% com  {i} bins de idade {j} bins de duration   e {k} bins de credit amount')
+                max = acuracia
+                best_cm = confusion_matrix(y_test, y_pred)
+                best_params = (i, j,k)
+                best_model = clf
+
+print(f"Best accuracy: {max*100:.2f}% with Age={best_params[0]} and Credit={best_params[1]} and Duration ={best_params[2]}")
 plt.figure(figsize=(4,4))
 disp = ConfusionMatrixDisplay(confusion_matrix=best_cm)
 disp.plot(cmap='Blues')
