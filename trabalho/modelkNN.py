@@ -38,49 +38,72 @@ df = pd.concat([df, encoded_df], axis=1)
 # Risk
 df['Risk'] = (df['Risk'] == 'good').astype(int) # bad -> 0; good -> 1;
 
-# Saving Accounts
-print(df['Saving accounts'].value_counts())
 
-encoder = OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value= -1,categories=[['little', 'moderate', 'quite rich', 'rich']])
-imputer = KNNImputer(n_neighbors=5)
+
+#Encodando Checking e Savings
+encoder = OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value= np.nan,categories=[['little', 'moderate','rich','quite rich']]) #encoder de savings
+
 
 df['Saving accounts']=encoder.fit_transform(df[['Saving accounts']]) #converts to numbers
-df['Saving accounts'] = df['Saving accounts'].replace(-1, np.nan)
 
-features = df.drop(columns=['Checking account']).columns
-
-imputed = imputer.fit_transform(df.drop(columns=['Checking account'])) #exclui o checking account do calculo do kNN
-imputed_df = pd.DataFrame(imputed, columns=features, index=df.index) #retorna dataframe com Savings preenchidos com kNN
-
-df['Saving accounts'] = imputed_df['Saving accounts']
-
-df['Saving accounts']=df['Saving accounts'].round() #arredonda, porque estamos falando de valores discretos, nao existe decimal
-
-print(df['Saving accounts'].value_counts())
-
-
-# Checking Account--> Removido dessa vez
-print(df['Checking account'].value_counts())
-
-encoder = OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value= -1,categories=[['little', 'moderate', 'rich']])
-imputer = KNNImputer(n_neighbors=5) #inicializando kNN e encoder
-
+encoder = OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value= np.nan,categories=[['little', 'moderate', 'rich']]) #encoder de checking
 df['Checking account'] = encoder.fit_transform(df[['Checking account']]) #converts to numbers
-df['Checking account']=df['Checking account'].replace(-1, np.nan) #muda -1 para NaN, para kNN funcionar
 
-features = df.columns
-imputed = imputer.fit_transform(df) #usa dataframe todo inclusive o savings para preencher com kNN
-imputed_df = pd.DataFrame(imputed, columns=features, index=df.index) #transforma retorno de kNN em dataframe
-df['Checking account'] = imputed_df['Checking account'] #coloca valores la dentro
-df['Checking account']=df['Checking account'].round() #arredonda, porque estamos falando de valores discretos, nao existe decimal
-print(df['Checking account'].value_counts())
-
-
-
+# Separando dados de treino e de teste
 X = df.drop('Risk', axis=1)
 y = df['Risk']
-
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state=42, stratify = y)
+
+df_train=pd.concat([X_train,y_train], axis=1) #juntando de novo df de treino e de teste, para preencher dados
+df_test=pd.concat([X_test,y_test], axis=1)
+
+# Preenchendo Saving accounts
+print(df_train['Saving accounts'].value_counts())
+
+features = df.drop(columns=['Checking account']).columns
+imputer = KNNImputer(n_neighbors=5)
+imputed = imputer.fit_transform(df_train.drop(columns=['Checking account'])) #exclui o checking account do calculo do kNN
+imputed_df = pd.DataFrame(imputed, columns=features, index=df_train.index) #retorna dataframe com Savings preenchidos com kNN
+
+df_train['Saving accounts'] = imputed_df['Saving accounts']
+df_train['Saving accounts']=df_train['Saving accounts'].round() #arredonda, porque estamos falando de valores discretos, nao existe decimal
+X_train['Saving accounts']=df_train['Saving accounts']
+
+imputed=imputer.transform(df_test.drop(columns='Checking account'))
+imputed_df = pd.DataFrame(imputed, columns=features, index=df_test.index) #retorna dataframe com Savings preenchidos com kNN
+
+df_test['Saving accounts'] = imputed_df['Saving accounts']
+df_test['Saving accounts']=df_test['Saving accounts'].round() #arredonda, porque estamos falando de valores discretos, nao existe decimal
+
+X_test['Saving accounts']=df_test['Saving accounts']
+
+print(df_train['Saving accounts'].value_counts())
+
+
+# Checking Account--> preenchendo
+print(df_train['Checking account'].value_counts())
+
+imputer = KNNImputer(n_neighbors=5) #inicializando kNN 
+features = df.columns
+
+imputed = imputer.fit_transform(df_train) #usa dataframe todo inclusive o savings para preencher com kNN
+imputed_df = pd.DataFrame(imputed, columns=features, index=df_train.index) #transforma retorno de kNN em dataframe
+
+df_train['Checking account'] = imputed_df['Checking account'] #coloca valores la dentro
+df_train['Checking account']=df_train['Checking account'].round() #arredonda, porque estamos falando de valores discretos, nao existe decimal
+X_train['Checking account']=df_train['Checking account']
+
+imputed=imputer.transform(df_test)
+imputed_df = pd.DataFrame(imputed, columns=features, index=df_test.index) #retorna dataframe com Savings preenchidos com kNN
+
+df_test['Checking account'] = imputed_df['Checking account']
+df_test['Checking account']=df_test['Checking account'].round() #arredonda, porque estamos falando de valores discretos, nao existe decimal
+
+X_test['Checking account']=df_test['Checking account']
+
+
+print(df_train['Checking account'].value_counts())
+
 max=-1
 best_cm = None
 best_params = None
