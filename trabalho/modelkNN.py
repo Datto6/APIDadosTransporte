@@ -4,11 +4,10 @@ import numpy as np
 from sklearn import tree  # Arvore de decisão e plot tree
 from sklearn.metrics import accuracy_score   # Acurácia
 from sklearn.preprocessing import OrdinalEncoder,OneHotEncoder, MinMaxScaler,KBinsDiscretizer  # Transformar coluna ordinária
-from sklearn.model_selection import train_test_split  # Separar a parte de teste
+from sklearn.model_selection import train_test_split,GridSearchCV  # Separar a parte de teste
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay  # Matriz de confusão
 import matplotlib.pyplot as plt  # Plot na tabela
 from sklearn.impute import KNNImputer
-
 df=pd.read_csv("class_german_credit.csv")
 
 
@@ -31,7 +30,6 @@ encoded = purpose_encoder.transform(df[['Purpose']]).toarray() # transform
 encoded_df = pd.DataFrame(encoded, columns=purpose_encoder.get_feature_names_out(['Purpose']))
 
 df = df.drop(columns=['Purpose']) # drop original column
-
 # concatenate
 df = pd.concat([df, encoded_df], axis=1)
 
@@ -108,34 +106,39 @@ max=-1
 best_cm = None
 best_params = None
 best_model = None
-for i in range(2,40):
-    age_discretizer = KBinsDiscretizer(
-        n_bins=i,
-        encode='ordinal',
-        strategy='uniform'
+i=7
+j=18
+k=28 
+
+age_discretizer = KBinsDiscretizer(
+    n_bins=i,
+    encode='ordinal',
+    strategy='uniform'
+)
+X_train_copy = X_train.copy()   # usar copias
+X_test_copy = X_test.copy()
+
+X_train_copy['Age'] = age_discretizer.fit_transform(X_train[['Age']])
+X_test_copy['Age'] = age_discretizer.transform(X_test[['Age']]) #discretiza atributo de idade
+duration_discretizer = KBinsDiscretizer(
+    n_bins=j,
+    encode='ordinal',
+    strategy='uniform'
     )
-    X_train_copy = X_train.copy()   # usar copias
-    X_test_copy = X_test.copy()
+X_train_copy['Duration'] = duration_discretizer.fit_transform(X_train[['Duration']])
+X_test_copy['Duration'] = duration_discretizer.transform(X_test[['Duration']])
 
-    X_train_copy['Age'] = age_discretizer.fit_transform(X_train[['Age']])
-    X_test_copy['Age'] = age_discretizer.transform(X_test[['Age']]) #discretiza atributo de idade
+credit_discretizer = KBinsDiscretizer(n_bins=k,encode='ordinal',strategy='uniform')
+X_train_copy['Credit amount'] = credit_discretizer.fit_transform(X_train[['Credit amount']]) #so treina nos dados de treinamento
+X_test_copy['Credit amount'] = credit_discretizer.transform(X_test[['Credit amount']]) #discretiza atributo de credit amount
 
-    for j in range(2,40):
-        duration_discretizer = KBinsDiscretizer(
-        n_bins=j,
-        encode='ordinal',
-        strategy='uniform'
-        )
-        X_train_copy['Duration'] = duration_discretizer.fit_transform(X_train[['Duration']])
-        X_test_copy['Duration'] = duration_discretizer.transform(X_test[['Duration']])
-
-        for k in range (2,40):
-            credit_discretizer = KBinsDiscretizer(n_bins=k,encode='ordinal',strategy='uniform')
-            X_train_copy['Credit amount'] = credit_discretizer.fit_transform(X_train[['Credit amount']]) #so treina nos dados de treinamento
-            X_test_copy['Credit amount'] = credit_discretizer.transform(X_test[['Credit amount']]) #discretiza atributo de credit amount
-
-
-            clf = tree.DecisionTreeClassifier(class_weight='balanced',random_state=42) #cria modelo
+for l in range(1,20):
+    for leaf in range(1,10):
+        for split in range(2,10):
+            clf = tree.DecisionTreeClassifier(class_weight='balanced',random_state=42,
+                max_depth=l,
+                min_samples_leaf=leaf,
+                min_samples_split=split,) #cria modelo
             # Treinamento
             clf.fit(X_train_copy, y_train)
 
@@ -145,14 +148,16 @@ for i in range(2,40):
             acuracia = accuracy_score(y_test, y_pred)
             if acuracia>max:
                 max=acuracia
-                print(f'A acurácia do modelo foi de {acuracia*100:.2f}% com  {i} bins de idade {j} bins de duration   e {k} bins de credit amount')
+                print(f'''A acurácia do modelo foi de {acuracia*100:.2f}% com  {i} bins idade {j} bins duration {k} bins credit amount {l} max depth {leaf} min_samples_leaf
+                    {split} min_samples_split''')
                 max = acuracia
                 best_cm = confusion_matrix(y_test, y_pred)
-                best_params = (i, j,k)
+                best_params = (i, j,k,l,leaf,split)
                 best_model = clf
 
-print(f"Best accuracy: {max*100:.2f}% with Age={best_params[0]} and Credit={best_params[1]} and Duration ={best_params[2]}")
-plt.figure(figsize=(4,4))
+print(f'''Best accuracy: {max*100:.2f}% with Age={best_params[0]} and Credit={best_params[1]} 
+    and Duration ={best_params[2]} and max depth= {best_params[3]} min_samples_leaf={best_params[4]} min_samples_split={best_params[5]}''')
+
 disp = ConfusionMatrixDisplay(confusion_matrix=best_cm)
 disp.plot(cmap='Blues')
 plt.title('Best Confusion Matrix')
@@ -160,5 +165,6 @@ plt.title('Best Confusion Matrix')
 
 importancia = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
 print("Importância das colunas:\n", importancia)
-
+plt.figure()
+tree.plot_tree(best_model)
 plt.show()
