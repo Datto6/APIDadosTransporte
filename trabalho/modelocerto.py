@@ -117,9 +117,10 @@ preprocessor = ColumnTransformer([
 # =========================
 
 pipe = Pipeline([
-    ('preprocessing', preprocessor),
-    ('imputer', KNNImputer(n_neighbors=5)),
-     ('model', tree.DecisionTreeClassifier(class_weight='balanced',random_state=42))
+    ('preprocessing', preprocessor), #transforma em numericos p arvore
+    ('imputer', KNNImputer(n_neighbors=5)), #imputa missing de saving e checking
+    ('rounder',FunctionTransformer(np.round)), #agora arredonda
+    ('model', tree.DecisionTreeClassifier(class_weight='balanced',random_state=42))
 ])
 
 # =========================
@@ -134,10 +135,11 @@ X_train, X_test, y_train, y_test = train_test_split(
     stratify=y
 )
 
+
 X_train_processed = pipe[:-1].fit_transform(X_train, y_train)
 X_test_processed = pipe[:-1].transform(X_test)
 
-feature_names = pipe[:-1].get_feature_names_out()
+feature_names = pipe.named_steps['preprocessing'].get_feature_names_out()
 
 X_train_processed = pd.DataFrame(
     X_train_processed,
