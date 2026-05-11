@@ -16,7 +16,7 @@ df['Sex'] = (df['Sex'] == 'male').astype(int) # female -> 0; male -> 1;
 # df=df.drop('Sex', axis=1)
 
 # Housing
-encoder = OrdinalEncoder(categories=[['free', 'rent', 'own']])
+encoder = OrdinalEncoder(categories=[['free', 'rent', 'own']]) #pode ser uma ordem diferente, explorar ordens diferentes ou onehot
 df['Housing'] = encoder.fit_transform(df[['Housing']])
 
 # Purpose
@@ -54,6 +54,7 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, rando
 
 df_train=pd.concat([X_train,y_train], axis=1) #juntando de novo df de treino e de teste, para preencher dados
 df_test=pd.concat([X_test,y_test], axis=1)
+#rodar modelo aqui base 0. 
 
 # Preenchendo Saving accounts
 print(df_train['Saving accounts'].value_counts())
