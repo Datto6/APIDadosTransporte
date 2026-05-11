@@ -86,10 +86,6 @@ preprocessor = ColumnTransformer([
                     ]]
                 )
             ),
-            (
-                'imputer',
-                KNNImputer(n_neighbors=5)
-            )
         ]),
         saving_col
     ),
@@ -110,10 +106,6 @@ preprocessor = ColumnTransformer([
                     ]]
                 )
             ),
-            (
-                'imputer',
-                KNNImputer(n_neighbors=5)
-            )
         ]),
         checking_col
     )
@@ -126,8 +118,8 @@ preprocessor = ColumnTransformer([
 
 pipe = Pipeline([
     ('preprocessing', preprocessor),
-    # ('imputer', KNNImputer(n_neighbors=5)), implementar isso aqui na proxima
-    # ('model', DecisionTreeClassifier(...))
+    ('imputer', KNNImputer(n_neighbors=5)),
+     ('model', tree.DecisionTreeClassifier(class_weight='balanced',random_state=42))
 ])
 
 # =========================
@@ -141,26 +133,37 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42,
     stratify=y
 )
-X_train_processed =  pd.DataFrame(pipe.fit_transform(X_train), columns=pipe.get_feature_names_out(), index=X_train.index) #retorna dataframe com Savings preenchidos com kNN
-X_test_processed = pd.DataFrame(pipe.transform(X_test), columns=pipe.get_feature_names_out(), index=X_test.index)
-print(X_train_processed['checking__Checking account'].value_counts())
-clf = tree.DecisionTreeClassifier(class_weight='balanced',random_state=42)
-            # Treinamento
-clf.fit(X_train_processed, y_train)
-            # Teste
-y_pred = clf.predict(X_test_processed)
+
+X_train_processed = pipe[:-1].fit_transform(X_train, y_train)
+X_test_processed = pipe[:-1].transform(X_test)
+
+feature_names = pipe[:-1].get_feature_names_out()
+
+X_train_processed = pd.DataFrame(
+    X_train_processed,
+    columns=feature_names,
+    index=X_train.index
+)
+
+X_test_processed = pd.DataFrame(
+    X_test_processed,
+    columns=feature_names,
+    index=X_test.index
+)
+print(X_train_processed.head())
+print(X_train_processed['saving__Saving accounts'].value_counts())
+print(X_train_processed['checking__Checking account'].value_counts()) #isso eh apenas para visualizar o que o kNN fez
+print(X_train_processed.info())
+
+pipe.fit(X_train, y_train)
+y_pred = pipe.predict(X_test)
+
 acuracia = accuracy_score(y_test, y_pred)
 print(f"{acuracia*100:.2f}%")
 best_cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=best_cm)
 disp.plot(cmap='Blues')
 plt.title('Best Confusion Matrix')
-print(X_train_processed.head())
 plt.show()
-# =========================
-# FIT + TRANSFORM
-# =========================
-
-
 
 
