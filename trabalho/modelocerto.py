@@ -44,8 +44,15 @@ def purposeEncoder(df):
     encoded_df = pd.DataFrame(encoded, columns=purpose_encoder.get_feature_names_out(['Purpose']))
 
     df = df.drop(columns=['Purpose']) # drop original column
-    # concatenate
     df = pd.concat([df, encoded_df], axis=1)
+    # Merge the three columns into one
+    cols_to_merge = ['Purpose_repairs', 'Purpose_vacation/others', 'Purpose_domestic appliances']
+    existing_cols = [c for c in cols_to_merge if c in df.columns] #protects against keyerror, checks if columns exist in df
+
+    if existing_cols:
+        df['Purpose_repairs/vacation/domestic'] = df[existing_cols].max(axis=1) #takes max of row in each existing_col 
+        df = df.drop(columns=existing_cols)
+
     return df
 
 df=purposeEncoder(df)
@@ -83,12 +90,12 @@ preprocessor = ColumnTransformer([
         checking_col
     ),
 
-    #Discretization amounts
-    ('age_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'), ['Age']),
+    #Coisas de discretizacao, nao funcionou
+    # ('age_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'), ['Age']),
 
-    ('duration_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'),['Duration']),
+    # ('duration_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'),['Duration']),
 
-    ('credit_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'),['Credit amount'])
+    # ('credit_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'),['Credit amount'])
 ], remainder='passthrough')
 
 # =========================
@@ -97,8 +104,8 @@ preprocessor = ColumnTransformer([
 
 pipe = Pipeline([
     ('preprocessing', preprocessor), #transforma em numericos p arvore
-    ('imputer', KNNImputer(n_neighbors=5)), #imputa missing de saving e checking
-    ('rounder',FunctionTransformer(np.round)), #agora arredonda
+    # ('imputer', KNNImputer(n_neighbors=5)), #imputa missing de saving e checking
+    # ('rounder',FunctionTransformer(np.round)), #agora arredonda
     ('model', tree.DecisionTreeClassifier(class_weight='balanced',random_state=42))
 ])
 
@@ -128,13 +135,8 @@ print(X_train_processed['checking__Checking account'].value_counts()) #isso eh a
 print(X_train_processed.info())
 
 param_grid = {
-    'preprocessing__age_bins__n_bins': [2,3,4,5,6],
-    'preprocessing__duration_bins__n_bins': [2,3,4,5,6],
-    'preprocessing__credit_bins__n_bins': [2,3,4,5,6],
-
-    'preprocessing__age_bins__strategy': ['uniform', 'quantile'],
-    'preprocessing__duration_bins__strategy': ['uniform', 'quantile'],
-    'preprocessing__credit_bins__strategy': ['uniform', 'quantile'],
+    'model__min_samples_split':[2,3],
+    'model__min_samples_leaf':[1,2,3],
     'model__max_depth': [3,5,7,None]
 }
 cv_strategy = StratifiedKFold(n_splits=5) #classes desbalanceadas tem que manter stratified
