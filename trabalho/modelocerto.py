@@ -11,23 +11,20 @@ from sklearn.impute import KNNImputer
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 
-df=pd.read_csv("class_german_credit.csv")
-
 # =========================
 # LOAD DATA
 # =========================
 
 df = pd.read_csv("class_german_credit.csv")
+
 # =========================
 # COLUMN GROUPS
 # =========================
+df=df.drop(columns='Purpose')
 
 binary_cols = ['Sex']
-
 housing_col = ['Housing']
-
 saving_col = ['Saving accounts']
-
 checking_col = ['Checking account']
 
 # =========================
@@ -55,7 +52,7 @@ def purposeEncoder(df):
 
     return df
 
-df=purposeEncoder(df)
+# df=purposeEncoder(df)
 
 # target
 y = (df['Risk'] == 'good').astype(int)
@@ -66,13 +63,11 @@ X = df.drop(columns='Risk')
 preprocessor = ColumnTransformer([
     # Sex -> binary
     ('sex',OrdinalEncoder(categories=[['female', 'male']]), binary_cols),
-
     # Housing -> ordinal
     ( 'housing',
         OrdinalEncoder(categories=[['free', 'rent', 'own']]),
         housing_col
     ),
-
     # Saving accounts
     ('saving',OrdinalEncoder(
                     handle_unknown='use_encoded_value',
@@ -80,7 +75,6 @@ preprocessor = ColumnTransformer([
                     categories=[['little','moderate','rich','quite rich']]),
         saving_col
     ),
-
     # Checking account
     (
         'checking',OrdinalEncoder(
@@ -89,7 +83,6 @@ preprocessor = ColumnTransformer([
                     categories=[['little','moderate','rich']]),
         checking_col
     ),
-
     #Coisas de discretizacao, nao funcionou
     # ('age_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'), ['Age']),
 
@@ -144,7 +137,8 @@ grid = GridSearchCV(
     pipe,
     param_grid,
     scoring='accuracy',
-    cv=cv_strategy
+    cv=cv_strategy,
+    verbose=1
 )
 
 grid.fit(X_train, y_train)
@@ -157,6 +151,7 @@ y_pred = best_model.predict(X_test)
 
 acuracia = accuracy_score(y_test, y_pred)
 print(f"{acuracia*100:.2f}% best model accuracy")
+
 best_cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=best_cm)
 disp.plot(cmap='Blues')
