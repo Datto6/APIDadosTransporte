@@ -20,7 +20,6 @@ df = pd.read_csv("class_german_credit.csv")
 # =========================
 # COLUMN GROUPS
 # =========================
-df=df.drop(columns='Purpose')
 
 binary_cols = ['Sex']
 housing_col = ['Housing']
@@ -43,46 +42,34 @@ def purposeEncoder(df):
     df = df.drop(columns=['Purpose']) # drop original column
     df = pd.concat([df, encoded_df], axis=1)
     # Merge the three columns into one
-    cols_to_merge = ['Purpose_repairs', 'Purpose_vacation/others', 'Purpose_domestic appliances']
+    cols_to_merge = ['Purpose_repairs', 'Purpose_vacation/others', 'Purpose_domestic appliances', 'Purpose_education']
     existing_cols = [c for c in cols_to_merge if c in df.columns] #protects against keyerror, checks if columns exist in df
 
     if existing_cols:
-        df['Purpose_repairs/vacation/domestic'] = df[existing_cols].max(axis=1) #takes max of row in each existing_col 
+        df['Purpose_agreggate_others'] = df[existing_cols].max(axis=1) #takes max of row in each existing_col 
         df = df.drop(columns=existing_cols)
 
     return df
 
-# df=purposeEncoder(df)
+df=purposeEncoder(df)
 
 # target
 y = (df['Risk'] == 'good').astype(int)
-print(df.head())
+# print(df.head()) so para olhar valores
 # features
 X = df.drop(columns='Risk')
 
 preprocessor = ColumnTransformer([
     # Sex -> binary
     ('sex',OrdinalEncoder(categories=[['female', 'male']]), binary_cols),
+
     # Housing -> ordinal
-    ( 'housing',
-        OrdinalEncoder(categories=[['free', 'rent', 'own']]),
-        housing_col
-    ),
+    ( 'housing',OrdinalEncoder(categories=[['free','rent', 'own']]),housing_col),
+
     # Saving accounts
-    ('saving',OrdinalEncoder(
-                    handle_unknown='use_encoded_value',
-                    unknown_value=np.nan,
-                    categories=[['little','moderate','rich','quite rich']]),
-        saving_col
-    ),
+    ('saving',OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value=np.nan,categories=[['little','moderate','rich','quite rich']]),saving_col),
     # Checking account
-    (
-        'checking',OrdinalEncoder(
-                    handle_unknown='use_encoded_value',
-                    unknown_value=np.nan,
-                    categories=[['little','moderate','rich']]),
-        checking_col
-    ),
+    ('checking',OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value=np.nan,categories=[['little','moderate','rich']]),checking_col),
     #Coisas de discretizacao, nao funcionou
     # ('age_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'), ['Age']),
 
@@ -122,10 +109,10 @@ X_train_processed = pd.DataFrame(X_train_processed,columns=feature_names,index=X
 
 X_test_processed = pd.DataFrame(X_test_processed,columns=feature_names,index=X_test.index)
 
-print(X_train_processed.head())
-print(X_train_processed['saving__Saving accounts'].value_counts())
-print(X_train_processed['checking__Checking account'].value_counts()) #isso eh apenas para visualizar o que o kNN fez
-print(X_train_processed.info())
+# print(X_train_processed.head())
+# print(X_train_processed['saving__Saving accounts'].value_counts())
+# print(X_train_processed['checking__Checking account'].value_counts()) #isso eh apenas para visualizar o que o kNN fez
+# print(X_train_processed.info())
 
 param_grid = {
     'model__min_samples_split':[2,3],
@@ -156,6 +143,13 @@ best_cm = confusion_matrix(y_test, y_pred)
 disp = ConfusionMatrixDisplay(confusion_matrix=best_cm)
 disp.plot(cmap='Blues')
 plt.title('Best Confusion Matrix')
+
+best_tree = best_model.named_steps['model']
+plt.figure()
+tree.plot_tree(
+    best_tree,
+    filled=True,
+    feature_names=X_train.columns,
+    class_names=True
+)
 plt.show()
-
-
