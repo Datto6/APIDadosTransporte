@@ -58,24 +58,21 @@ y = (df['Risk'] == 'good').astype(int)
 # print(df.head()) so para olhar valores
 # features
 X = df.drop(columns='Risk')
+categorical_cols = [
+    'Sex',
+    'Housing',
+    'Saving accounts',
+    'Checking account'
+]
 
 preprocessor = ColumnTransformer([
-    # Sex -> binary
-    ('sex',OrdinalEncoder(categories=[['female', 'male']]), binary_cols),
-
-    # Housing -> ordinal
-    ( 'housing',OrdinalEncoder(categories=[['free','rent', 'own']]),housing_col),
-
-    # Saving accounts
-    ('saving',OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value=np.nan,categories=[['little','moderate','rich','quite rich']]),saving_col),
-    # Checking account
-    ('checking',OrdinalEncoder(handle_unknown='use_encoded_value',unknown_value=np.nan,categories=[['little','moderate','rich']]),checking_col),
+    ('categorical',OneHotEncoder(handle_unknown='ignore',sparse_output=False),categorical_cols),
     #Coisas de discretizacao, nao funcionou
-    # ('age_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'), ['Age']),
+    ('age_bins',KBinsDiscretizer(encode='onehot',quantile_method='linear',n_bins=10), ['Age']),
 
-    # ('duration_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'),['Duration']),
+    ('duration_bins',KBinsDiscretizer(encode='onehot',quantile_method='linear',n_bins=10),['Duration']),
 
-    # ('credit_bins',KBinsDiscretizer(encode='ordinal',quantile_method='linear'),['Credit amount'])
+    ('credit_bins',KBinsDiscretizer(encode='onehot',quantile_method='linear',n_bins=10),['Credit amount'])
 ], remainder='passthrough')
 
 # =========================
@@ -85,8 +82,7 @@ preprocessor = ColumnTransformer([
 pipe = Pipeline([
     ('preprocessing', preprocessor), #transforma em numericos p arvore
     ('imputer', KNNImputer(n_neighbors=5)), #imputa missing de saving e checking
-    ('rounder',FunctionTransformer(np.round)), #agora arredonda
-    ('model', GaussianNB())
+    ('model', ComplementNB())
 ])
 
 # =========================
@@ -110,8 +106,6 @@ X_train_processed = pd.DataFrame(X_train_processed,columns=feature_names,index=X
 X_test_processed = pd.DataFrame(X_test_processed,columns=feature_names,index=X_test.index)
 
 print(X_train_processed.head())
-print(X_train_processed['saving__Saving accounts'].value_counts())
-print(X_train_processed['checking__Checking account'].value_counts()) #isso eh apenas para visualizar o que o kNN fez
 print(X_train_processed.info())
 
 pipe.fit(X_train,y_train)
